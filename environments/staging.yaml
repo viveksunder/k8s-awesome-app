@@ -1,0 +1,12 @@
+replicaCount: 2
+
+service:
+  targetPort: 8080
+
+ingress:
+  enabled: true
+  hosts:
+    - k8s-awesome-app.internal-tools.staging.mongodb.sh
+
+env:
+  ENV: staging
