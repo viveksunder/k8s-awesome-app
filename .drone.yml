@@ -18,7 +18,7 @@ pipeline:
 
   deploy-staging:
     image: quay.io/ipedrazas/drone-helm
-    release: whereis
+    release: k8s-awesome-app
     namespace: internal-tools
     secrets: [ staging_kubernetes_token ]
     prefix: staging
