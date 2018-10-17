@@ -1,44 +1,36 @@
 ---
-matrix:
-  include:
-    - APP: # SET VALUE HERE (example: my-app)
-      NAMESPACE: # SET VALUE HERE (example: devops)
-
 pipeline:
-  publish:
+
+  # staging
+
+  build+publish-master-branch:
+    image: plugins/ecr
+    secrets: [ ecr_access_key, ecr_secret_key ]
+    registry: 795250896452.dkr.ecr.us-east-1.amazonaws.com
+    repo: 795250896452.dkr.ecr.us-east-1.amazonaws.com/internal-tools/${DRONE_REPO_NAME}
+    create_repository: true
+    tags:
+      - git-${DRONE_COMMIT_SHA:0:7}
+      - latest
     when:
       branch: master
       event: push
-
-    image: plugins/ecr
-    secrets: [ ecr_access_key, ecr_secret_key]
-
-    registry: 795250896452.dkr.ecr.us-east-1.amazonaws.com
-    repo: 795250896452.dkr.ecr.us-east-1.amazonaws.com/${NAMESPACE}/${DRONE_REPO_NAME}
-    create_repository: true
-
-    tags:
-    - git-${DRONE_COMMIT_SHA:0:7}
-    - latest
 
   deploy-staging:
+    image: quay.io/ipedrazas/drone-helm
+    release: whereis
+    namespace: internal-tools
+    secrets: [ staging_kubernetes_token ]
+    prefix: staging
+    environment:
+      - API_SERVER=https://api.staging.mongodb.sh
+    helm_repos: mongodb=https://10gen-ops.github.io/helm-charts
+    chart: mongodb/web-app
+    chart_version: 3.0.0
+    tiller_ns: internal-tools
+    skip_tls_verify: true
+    client_only: true
+    values: "image.tag=git-${DRONE_COMMIT_SHA:0:7},image.repository=795250896452.dkr.ecr.us-east-1.amazonaws.com/internal-tools/${DRONE_REPO_NAME}"
     when:
       branch: master
       event: push
-
-    image: quay.io/ipedrazas/drone-helm
-
-    release: ${APP}
-    namespace: ${NAMESPACE}
-
-    environment:
-      - API_SERVER=https://api.staging.mongodb.sh
-    prefix: STAGING
-    secrets: [ staging_kubernetes_token ]
-
-    helm_repos: mongodb=https://10gen-ops.github.io/helm-charts
-    chart: mongodb/web-app
-    chart_version: 3.1.0
-    tiller_ns: ${NAMESPACE}
-    client_only: true
-    values: "image.tag=${DRONE_TAG},image.repository=795250896452.dkr.ecr.us-east-1.amazonaws.com/internal-tools/${DRONE_REPO_NAME}"
